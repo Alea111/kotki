@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spadające kotki</title>
+    <style>
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background-color: pink;
+        }
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <h1>Spadające kotki</h1>
+    <p id="score">Punkty: 0</p>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Rozmiary ekranu
+        const SCREEN_WIDTH = canvas.width;
+        const SCREEN_HEIGHT = canvas.height;
+
+        // Ładowanie obrazów
+        const playerImg = new Image();
+        playerImg.src = "kotek-player.png";
+
+        const catImg1 = new Image();
+        catImg1.src = "kotek.png";
+
+        const catImg2 = new Image();
+        catImg2.src = "kotek2.png";
+
+        const bumImg = new Image();
+        bumImg.src = "bum.png";
+
+        // Obiekty gry
+        let player = {
+            x: SCREEN_WIDTH / 2 - 40,
+            y: SCREEN_HEIGHT - 100,
+            width: 80,
+            height: 80,
+            speed: 10
+        };
+
+        let cats = [];
+        let gameOver = false;
+        let spawnRate = 1000; // Czas między pojawianiem się nowych kotków
+        let lastSpawn = Date.now();
+        let score = 0;
+        let catSpeedIncrease = 0.005;
+
+        // Funkcja resetująca grę
+        function resetGame() {
+            cats = [];
+            player.x = SCREEN_WIDTH / 2 - 40;
+            gameOver = false;
+            score = 0;
+            spawnRate = 1000;
+            document.getElementById("score").innerText = "Punkty: 0";
+            gameLoop();
+        }
+
+        // Funkcja tworzenia spadającego kotka
+        function createCat() {
+            const cat = {
+                x: Math.random() * (SCREEN_WIDTH - 50),
+                y: -50,
+                width: 50,
+                height: 50,
+                speed: 2 + Math.random() * 2,
+                image: Math.random() < 0.5 ? catImg1 : catImg2
+            };
+            cats.push(cat);
+        }
+
+        // Funkcja rysowania obiektów
+        function draw() {
+            ctx.clearRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+            // Rysowanie gracza
+            ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+
+            // Rysowanie kotków
+            for (let cat of cats) {
+                ctx.drawImage(cat.image, cat.x, cat.y, cat.width, cat.height);
+            }
+
+            // Wyświetlenie końca gry
+            if (gameOver) {
+                ctx.drawImage(bumImg, SCREEN_WIDTH / 2 - 150, SCREEN_HEIGHT / 2 - 150, 300, 300);
+                ctx.fillStyle = "red";
+                ctx.font = "20px Arial";
+                ctx.textAlign = "center";
+                ctx.fillText("BUM! Kliknij R, aby zagrać ponownie.", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 200);
+            }
+        }
+
+        // Funkcja aktualizowania stanu gry
+        function update() {
+            if (gameOver) return;
+
+            // Ruch kotków
+            for (let cat of cats) {
+                cat.y += cat.speed;
+
+                // Kolizja z graczem
+                if (
+                    player.x < cat.x + cat.width &&
+                    player.x + player.width > cat.x &&
+                    player.y < cat.y + cat.height &&
+                    player.y + player.height > cat.y
+                ) {
+                    gameOver = true;
+                }
+
+                // Dodawanie punktów, gdy kotek spadnie
+                if (cat.y > SCREEN_HEIGHT) {
+                    score++;
+                    document.getElementById("score").innerText = `Punkty: ${score}`;
+                }
+            }
+
+            // Usuwanie kotków, które spadły poza ekran
+            cats = cats.filter(cat => cat.y < SCREEN_HEIGHT);
+
+            // Tworzenie nowych kotków
+            if (Date.now() - lastSpawn > spawnRate) {
+                createCat();
+                lastSpawn = Date.now();
+                spawnRate = Math.max(500, spawnRate - 10); // Skracanie czasu pojawiania się kotków
+                for (let cat of cats) {
+                    cat.speed += catSpeedIncrease; // Przyspieszanie kotków
+                }
+            }
+        }
+
+        // Sterowanie graczem
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowLeft" && player.x > 0) {
+                player.x -= player.speed;
+            }
+            if (e.key === "ArrowRight" && player.x < SCREEN_WIDTH - player.width) {
+                player.x += player.speed;
+            }
+            if (e.key === "r" || e.key === "R") {
+                if (gameOver) {
+                    resetGame();
+                }
+            }
+        });
+
+        // Główna pętla gry
+        function gameLoop() {
+            update();
+            draw();
+            if (!gameOver) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Start gry
+        gameLoop();
+    </script>
+</body>
+</html>
